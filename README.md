@@ -2,23 +2,19 @@
 
 ![llmcouncil](header.jpg)
 
-The idea of this repo is that instead of asking a question to your favorite LLM provider (e.g. OpenAI GPT 5.1, Google Gemini 3.0 Pro, Anthropic Claude Sonnet 4.5, xAI Grok 4, eg.c), you can group them into your "LLM Council". This repo is a simple, local web app that essentially looks like ChatGPT except it uses OpenRouter to send your query to multiple LLMs, it then asks them to review and rank each other's work, and finally a Chairman LLM produces the final response.
+The idea of this repo is that instead of asking a question to a single LLM, you can group models into your "LLM Council". This repo is a local web app that sends your query to multiple Gemini models hosted on Google Cloud Vertex AI, asks them to review and rank each other's responses (anonymized peer review), and finally has a Chairman model synthesize the final response.
 
 In a bit more detail, here is what happens when you submit a query:
 
-1. **Stage 1: First opinions**. The user query is given to all LLMs individually, and the responses are collected. The individual responses are shown in a "tab view", so that the user can inspect them all one by one.
-2. **Stage 2: Review**. Each individual LLM is given the responses of the other LLMs. Under the hood, the LLM identities are anonymized so that the LLM can't play favorites when judging their outputs. The LLM is asked to rank them in accuracy and insight.
-3. **Stage 3: Final response**. The designated Chairman of the LLM Council takes all of the model's responses and compiles them into a single final answer that is presented to the user.
-
-## Vibe Code Alert
-
-This project was 99% vibe coded as a fun Saturday hack because I wanted to explore and evaluate a number of LLMs side by side in the process of [reading books together with LLMs](https://x.com/karpathy/status/1990577951671509438). It's nice and useful to see multiple responses side by side, and also the cross-opinions of all LLMs on each other's outputs. I'm not going to support it in any way, it's provided here as is for other people's inspiration and I don't intend to improve it. Code is ephemeral now and libraries are over, ask your LLM to change it in whatever way you like.
+1. **Stage 1: First opinions**. The user query is given to all 3 Gemini models individually (`gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`), and the responses are collected in parallel. The individual responses are shown in a tab view so that the user can inspect each one.
+2. **Stage 2: Review**. Each individual model is given the responses of the other models. Under the hood, the model identities are anonymized (Response A, B, C) so that models evaluate purely on accuracy and insight without bias. Each model provides an evaluation and a ranked list.
+3. **Stage 3: Final response**. The designated Chairman (`gemini-2.5-pro`) takes all model responses and peer rankings and compiles them into a single final synthesized answer.
 
 ## Setup
 
 ### 1. Install Dependencies
 
-The project uses [uv](https://docs.astral.sh/uv/) for project management.
+The project uses [uv](https://docs.astral.sh/uv/) for Python project management and [npm](https://nodejs.org/) for the frontend.
 
 **Backend:**
 ```bash
@@ -32,29 +28,49 @@ npm install
 cd ..
 ```
 
-### 2. Configure API Key
+### 2. Configure Google Cloud Vertex AI
 
-Create a `.env` file in the project root:
+The backend connects to Google Cloud Vertex AI using your GCP Project ID and Region.
+
+1. **Authenticate with Google Cloud:**
+   ```bash
+   gcloud auth application-default login
+   ```
+   *(Or set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable pointing to a service account key file).*
+
+2. **Configure `.env`:**
+   Create or edit `.env` in the project root:
+   ```bash
+   GCP_PROJECT_ID=your-gcp-project-id
+   GCP_REGION=global
+   ```
+
+   *(You can copy `.env.example` as a starting point).*
+
+### 3. Verify Vertex AI Connectivity
+
+You can verify that your Vertex AI credentials and models are working properly:
 
 ```bash
-OPENROUTER_API_KEY=sk-or-v1-...
+uv run python test_vertex.py
 ```
 
-Get your API key at [openrouter.ai](https://openrouter.ai/). Make sure to purchase the credits you need, or sign up for automatic top up.
+To run a full 3-stage council deliberation test from the command line:
 
-### 3. Configure Models (Optional)
+```bash
+uv run python test_full_council.py
+```
 
-Edit `backend/config.py` to customize the council:
+### 4. Configure Models (Optional)
 
-```python
-COUNCIL_MODELS = [
-    "openai/gpt-5.1",
-    "google/gemini-3-pro-preview",
-    "anthropic/claude-sonnet-4.5",
-    "x-ai/grok-4",
-]
+Default models in `backend/config.py`:
+- Council members: `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`
+- Chairman: `gemini-2.5-pro`
 
-CHAIRMAN_MODEL = "google/gemini-3-pro-preview"
+You can customize them via environment variables in `.env`:
+```bash
+COUNCIL_MODELS=gemini-2.5-pro,gemini-2.5-flash,gemini-2.5-flash-lite
+CHAIRMAN_MODEL=gemini-2.5-pro
 ```
 
 ## Running the Application
@@ -81,7 +97,7 @@ Then open http://localhost:5173 in your browser.
 
 ## Tech Stack
 
-- **Backend:** FastAPI (Python 3.10+), async httpx, OpenRouter API
+- **Backend:** FastAPI (Python 3.10+), Google GenAI SDK (`google-genai`), Vertex AI
 - **Frontend:** React + Vite, react-markdown for rendering
 - **Storage:** JSON files in `data/conversations/`
 - **Package Management:** uv for Python, npm for JavaScript

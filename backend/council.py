@@ -1,7 +1,7 @@
 """3-stage LLM Council orchestration."""
 
 from typing import List, Dict, Any, Tuple
-from .openrouter import query_models_parallel, query_model
+from .vertex import query_models_parallel, query_model
 from .config import COUNCIL_MODELS, CHAIRMAN_MODEL
 
 
@@ -186,26 +186,27 @@ def parse_ranking_from_text(ranking_text: str) -> List[str]:
     """
     import re
 
-    # Look for "FINAL RANKING:" section
-    if "FINAL RANKING:" in ranking_text:
-        # Extract everything after "FINAL RANKING:"
-        parts = ranking_text.split("FINAL RANKING:")
-        if len(parts) >= 2:
-            ranking_section = parts[1]
-            # Try to extract numbered list format (e.g., "1. Response A")
-            # This pattern looks for: number, period, optional space, "Response X"
-            numbered_matches = re.findall(r'\d+\.\s*Response [A-Z]', ranking_section)
-            if numbered_matches:
-                # Extract just the "Response X" part
-                return [re.search(r'Response [A-Z]', m).group() for m in numbered_matches]
+    # Look for "FINAL RANKING:" section (case-insensitive)
+    match = re.search(r'FINAL RANKING:\s*', ranking_text, re.IGNORECASE)
+    if match:
+        ranking_section = ranking_text[match.end():]
+        # Match numbered list format, accounting for possible markdown formatting like bold/italics
+        numbered_matches = re.findall(r'\d+\.\s*\*?\*?Response\s+([A-Z])\*?\*?', ranking_section)
+        if numbered_matches:
+            return [f"Response {letter}" for letter in numbered_matches]
 
-            # Fallback: Extract all "Response X" patterns in order
-            matches = re.findall(r'Response [A-Z]', ranking_section)
-            return matches
+        # Fallback within ranking section: Extract all "Response X" patterns in order
+        matches = re.findall(r'Response\s+([A-Z])', ranking_section)
+        if matches:
+            return [f"Response {letter}" for letter in matches]
 
-    # Fallback: try to find any "Response X" patterns in order
-    matches = re.findall(r'Response [A-Z]', ranking_text)
-    return matches
+    # Global fallback: try to find numbered or plain "Response X" patterns anywhere
+    numbered_matches = re.findall(r'\d+\.\s*\*?\*?Response\s+([A-Z])\*?\*?', ranking_text)
+    if numbered_matches:
+        return [f"Response {letter}" for letter in numbered_matches]
+
+    matches = re.findall(r'Response\s+([A-Z])', ranking_text)
+    return [f"Response {letter}" for letter in matches]
 
 
 def calculate_aggregate_rankings(
@@ -275,7 +276,7 @@ Title:"""
     messages = [{"role": "user", "content": title_prompt}]
 
     # Use gemini-2.5-flash for title generation (fast and cheap)
-    response = await query_model("google/gemini-2.5-flash", messages, timeout=30.0)
+    response = await query_model("gemini-2.5-flash", messages, timeout=30.0)
 
     if response is None:
         # Fallback to a generic title
