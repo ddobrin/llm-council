@@ -6,9 +6,9 @@ The idea of this repo is that instead of asking a question to a single LLM, you 
 
 In a bit more detail, here is what happens when you submit a query:
 
-1. **Stage 1: First opinions**. The user query is given to all 3 Gemini models individually (`gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`), and the responses are collected in parallel. The individual responses are shown in a tab view so that the user can inspect each one.
+1. **Stage 1: First opinions**. The user query is given to all 3 Gemini models individually (`gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`), and the responses are collected in parallel. The individual responses are shown in a tab view so that the user can inspect each one.
 2. **Stage 2: Review**. Each individual model is given the responses of the other models. Under the hood, the model identities are anonymized (Response A, B, C) so that models evaluate purely on accuracy and insight without bias. Each model provides an evaluation and a ranked list.
-3. **Stage 3: Final response**. The designated Chairman (`gemini-2.5-pro`) takes all model responses and peer rankings and compiles them into a single final synthesized answer.
+3. **Stage 3: Final response**. The designated Chairman (`gemini-3.1-pro-preview`) takes all model responses and peer rankings and compiles them into a single final synthesized answer.
 
 ## Setup
 
@@ -64,13 +64,13 @@ uv run python test_full_council.py
 ### 4. Configure Models (Optional)
 
 Default models in `backend/config.py`:
-- Council members: `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`
-- Chairman: `gemini-2.5-pro`
+- Council members: `gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`
+- Chairman: `gemini-3.1-pro-preview`
 
 You can customize them via environment variables in `.env`:
 ```bash
-COUNCIL_MODELS=gemini-2.5-pro,gemini-2.5-flash,gemini-2.5-flash-lite
-CHAIRMAN_MODEL=gemini-2.5-pro
+COUNCIL_MODELS=gemini-3.6-flash,gemini-3.7-flash,gemini-3.8-flash
+CHAIRMAN_MODEL=gemini-3.1-pro-preview
 ```
 
 ## Running the Application

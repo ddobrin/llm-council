@@ -31,7 +31,7 @@ else:
         "gemini-3.8-flash",
     ]
 
-# Chairman model - synthesizes final response (Gemini 2.5 Pro has highest reasoning capability)
+# Chairman model - synthesizes final response (Gemini 3.1 Pro Preview has highest reasoning capability)
 CHAIRMAN_MODEL = os.getenv("CHAIRMAN_MODEL", "gemini-3.1-pro-preview")
 
 # Legacy OpenRouter settings (retained for backward compatibility)

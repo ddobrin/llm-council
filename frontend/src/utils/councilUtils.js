@@ -35,7 +35,7 @@ const PALETTE = ['#4285f4', '#1da1f2', '#d97706', '#10a37f', '#8b5cf6', '#ec4899
  */
 export function formatModelName(modelId) {
   if (!modelId) return 'Unknown Model';
-  // Strip provider prefix if present (e.g. google/gemini-2.5-pro)
+  // Strip provider prefix if present (e.g. google/gemini-3.6-flash)
   const base = modelId.includes('/') ? modelId.split('/')[1] : modelId;
   if (MODEL_NAME_MAP[base]) return MODEL_NAME_MAP[base];
   if (MODEL_NAME_MAP[modelId]) return MODEL_NAME_MAP[modelId];

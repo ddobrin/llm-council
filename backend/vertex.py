@@ -46,7 +46,7 @@ async def query_model(
     Query a single Gemini model via Vertex AI.
 
     Args:
-        model: Vertex AI Gemini model identifier (e.g., "gemini-2.5-pro", "gemini-2.5-flash")
+        model: Vertex AI Gemini model identifier (e.g., "gemini-3.6-flash", "gemini-3.1-pro-preview")
         messages: List of message dicts with 'role' and 'content'
         timeout: Request timeout in seconds
 

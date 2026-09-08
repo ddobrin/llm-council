@@ -13,8 +13,8 @@ LLM Council is a 3-stage deliberation system where multiple LLMs collaboratively
 **`config.py`**
 - Configures `GCP_PROJECT_ID` (env `GCP_PROJECT_ID` / `GOOGLE_CLOUD_PROJECT`, defaults to `genai-playground24`)
 - Configures `GCP_REGION` (env `GCP_REGION` / `GOOGLE_CLOUD_REGION`, defaults to `global`)
-- Contains `COUNCIL_MODELS`: 3 Gemini models on Vertex AI (`gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`), configurable via `COUNCIL_MODELS` env var
-- Contains `CHAIRMAN_MODEL` (`gemini-2.5-pro`, configurable via `CHAIRMAN_MODEL` env var)
+- Contains `COUNCIL_MODELS`: 3 Gemini models on Vertex AI (`gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`), configurable via `COUNCIL_MODELS` env var
+- Contains `CHAIRMAN_MODEL` (`gemini-3.1-pro-preview`, configurable via `CHAIRMAN_MODEL` env var)
 - Backend runs on **port 8001** (NOT 8000 - user had another app on 8000)
 
 **`vertex.py`**
@@ -39,13 +39,13 @@ LLM Council is a 3-stage deliberation system where multiple LLMs collaboratively
 - `stage3_synthesize_final()`: Chairman synthesizes from all responses + rankings
 - `parse_ranking_from_text()`: Robust regex extraction of "FINAL RANKING:" section (handles clean, bolded, and numbered markdown formats)
 - `calculate_aggregate_rankings()`: Computes average rank position across all peer evaluations
-- `generate_conversation_title()`: Concise title generation using `gemini-2.5-flash`
+- `generate_conversation_title()`: Concise title generation using `gemini-3.6-flash`
 
 **`storage.py`**
 - JSON-based conversation storage in `data/conversations/`
 - Each conversation: `{id, created_at, messages[]}`
-- Assistant messages contain: `{role, stage1, stage2, stage3}`
-- Note: metadata (label_to_model, aggregate_rankings) is NOT persisted to storage, only returned via API
+- Assistant messages contain: `{role, stage1, stage2, stage3, metadata}`
+- Metadata (`label_to_model`, `aggregate_rankings`) is persisted to storage so saved sessions reload accurately
 
 **`main.py`**
 - FastAPI app with CORS enabled for localhost:5173 and localhost:3000
@@ -118,7 +118,7 @@ This strict format allows reliable parsing while still getting thoughtful evalua
 
 ### De-anonymization Strategy
 - Models receive: "Response A", "Response B", "Response C"
-- Backend creates mapping: `{"Response A": "gemini-2.5-pro", ...}`
+- Backend creates mapping: `{"Response A": "gemini-3.6-flash", ...}`
 - Frontend displays model names in **bold** for readability
 - Users see explanation that original evaluation used anonymous labels
 - This prevents bias while maintaining transparency
@@ -149,8 +149,8 @@ All ReactMarkdown components must be wrapped in `<div className="markdown-conten
 
 ### Model Configuration
 Council models and Chairman are defined in `backend/config.py` and configurable via `.env`:
-- `COUNCIL_MODELS`: `["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"]`
-- `CHAIRMAN_MODEL`: `"gemini-2.5-pro"`
+- `COUNCIL_MODELS`: `["gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.8-flash"]`
+- `CHAIRMAN_MODEL`: `"gemini-3.1-pro-preview"`
 
 ## Common Gotchas
 
@@ -158,7 +158,7 @@ Council models and Chairman are defined in `backend/config.py` and configurable 
 2. **Module Import Errors**: Always run backend as `python -m backend.main` from project root, not from backend directory.
 3. **CORS Issues**: Frontend must match allowed origins in `main.py` CORS middleware.
 4. **Ranking Parse Failures**: Fallback regex extracts "Response X" patterns across multiple formats.
-5. **Missing Metadata**: Metadata is ephemeral (not persisted), only available in API responses.
+5. **Metadata Persistence**: Metadata (`label_to_model`, `aggregate_rankings`) is persisted with messages in storage, with client-side fallback computation for legacy conversations.
 
 ## Testing Notes
 
