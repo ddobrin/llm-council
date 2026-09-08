@@ -15,8 +15,18 @@ function App() {
       'gemini-3.8-flash',
     ],
     chairman_model: 'gemini-3.1-pro-preview',
+    available_efforts: ['default', 'minimal', 'low', 'medium', 'high'],
+    default_efforts: {},
   });
+  const [modelEfforts, setModelEfforts] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleUpdateModelEffort = useCallback((modelId, effort) => {
+    setModelEfforts((prev) => ({
+      ...prev,
+      [modelId]: effort === 'default' ? null : effort,
+    }));
+  }, []);
 
   const loadConversation = useCallback(async (id) => {
     try {
@@ -45,6 +55,9 @@ function App() {
         const config = await api.getCouncil();
         if (config && isMounted) {
           setCouncilConfig(config);
+          if (config.default_efforts) {
+            setModelEfforts((prev) => ({ ...config.default_efforts, ...prev }));
+          }
         }
       } catch (e) {
         console.warn('Could not load council config:', e);
@@ -136,8 +149,11 @@ function App() {
       });
 
       // Send message with streaming
-      await api.sendMessageStream(targetConvId, content, (eventType, event) => {
-        switch (eventType) {
+      await api.sendMessageStream(
+        targetConvId,
+        content,
+        (eventType, event) => {
+          switch (eventType) {
           case 'stage1_start':
             setCurrentConversation((prev) => {
               if (!prev || !prev.messages) return prev;
@@ -230,7 +246,7 @@ function App() {
           default:
             break;
         }
-      });
+      }, modelEfforts);
     } catch (error) {
       console.error('Failed to send message:', error);
       setIsLoading(false);
@@ -246,6 +262,9 @@ function App() {
         onNewConversation={handleNewConversation}
         councilModels={councilConfig.council_models}
         chairmanModel={councilConfig.chairman_model}
+        modelEfforts={modelEfforts}
+        onUpdateModelEffort={handleUpdateModelEffort}
+        availableEfforts={councilConfig.available_efforts || ['default', 'minimal', 'low', 'medium', 'high']}
       />
       <ChatInterface
         conversation={currentConversation}

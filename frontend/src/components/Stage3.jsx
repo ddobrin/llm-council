@@ -25,6 +25,14 @@ export default function Stage3({ finalResponse, isLoading = false }) {
           </div>
           <div className="chairman-badge">
             <span>Synthesized by {formatModelName(finalResponse.model)}</span>
+            {finalResponse.effort && (
+              <span
+                className="chairman-effort-badge"
+                title={`Reasoning effort: ${finalResponse.effort}`}
+              >
+                Effort: {finalResponse.effort}
+              </span>
+            )}
           </div>
         </div>
       )}

@@ -33,3 +33,16 @@
   margin-top: 1.25rem;
   font-weight: 500;
 }
+
+.chairman-effort-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  background: #bfdbfe;
+  color: #1e3a8a;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}

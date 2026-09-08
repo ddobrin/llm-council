@@ -63,8 +63,11 @@ export const api = {
 
   /**
    * Send a message in a conversation.
+   * @param {string} conversationId - The conversation ID
+   * @param {string} content - The message content
+   * @param {Object} [modelEfforts] - Optional mapping of model ID to effort level
    */
-  async sendMessage(conversationId, content) {
+  async sendMessage(conversationId, content, modelEfforts = null) {
     const response = await fetch(
       `${API_BASE}/api/conversations/${conversationId}/message`,
       {
@@ -72,7 +75,7 @@ export const api = {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, model_efforts: modelEfforts }),
       }
     );
     if (!response.ok) {
@@ -86,9 +89,10 @@ export const api = {
    * @param {string} conversationId - The conversation ID
    * @param {string} content - The message content
    * @param {function} onEvent - Callback function for each event: (eventType, data) => void
+   * @param {Object} [modelEfforts] - Optional mapping of model ID to effort level
    * @returns {Promise<void>}
    */
-  async sendMessageStream(conversationId, content, onEvent) {
+  async sendMessageStream(conversationId, content, onEvent, modelEfforts = null) {
     const response = await fetch(
       `${API_BASE}/api/conversations/${conversationId}/message/stream`,
       {
@@ -96,7 +100,7 @@ export const api = {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, model_efforts: modelEfforts }),
       }
     );
 

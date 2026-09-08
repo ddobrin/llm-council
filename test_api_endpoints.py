@@ -15,6 +15,18 @@ async def test_api():
         assert resp.status_code == 200
         print("✓ Health check passed:", resp.json())
 
+        # 1b. Council configuration & effort options
+        resp = await client.get("/api/council")
+        assert resp.status_code == 200
+        council_info = resp.json()
+        assert "council_models" in council_info
+        assert "chairman_model" in council_info
+        assert "available_efforts" in council_info
+        assert "default_efforts" in council_info
+        assert "default" in council_info["available_efforts"]
+        assert "low" in council_info["available_efforts"]
+        print("✓ GET /api/council passed:", council_info)
+
         # 2. Create conversation
         resp = await client.post("/api/conversations", json={})
         assert resp.status_code == 200
@@ -29,13 +41,21 @@ async def test_api():
         assert any(c["id"] == conv_id for c in convs)
         print(f"✓ Listed {len(convs)} conversations")
 
-        # 4. Test streaming message
-        print("\nTesting /message/stream SSE endpoint...")
+        # 4. Test streaming message with per-model effort
+        print("\nTesting /message/stream SSE endpoint with per-model effort...")
         events = []
+        model_efforts_payload = {
+            "gemini-3.6-flash": "low",
+            "gemini-3.7-flash": "default",
+            "gemini-3.1-pro-preview": "low",
+        }
         async with client.stream(
             "POST",
             f"/api/conversations/{conv_id}/message/stream",
-            json={"content": "What is 2 + 2?"}
+            json={
+                "content": "What is 2 + 2?",
+                "model_efforts": model_efforts_payload,
+            }
         ) as stream_resp:
             assert stream_resp.status_code == 200
             async for line in stream_resp.aiter_lines():
@@ -67,7 +87,14 @@ async def test_api():
         assert len(conv_detail["messages"]) == 2  # user + assistant
         assert conv_detail["messages"][1]["role"] == "assistant"
         assert len(conv_detail["messages"][1]["stage1"]) == 3
-        print(f"✓ Conversation persisted with title: '{conv_detail['title']}'")
+        # Check effort metadata
+        stage1_items = conv_detail["messages"][1]["stage1"]
+        for item in stage1_items:
+            print(f"  Model {item['model']} effort: {item.get('effort')}")
+        stage3_item = conv_detail["messages"][1]["stage3"]
+        print(f"  Chairman {stage3_item['model']} effort: {stage3_item.get('effort')}")
+        assert "model_efforts" in conv_detail["messages"][1]["metadata"]
+        print(f"✓ Conversation persisted with title: '{conv_detail['title']}' and model_efforts metadata")
         print("\nAPI tests PASSED!")
 
 

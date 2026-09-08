@@ -15,14 +15,19 @@ LLM Council is a 3-stage deliberation system where multiple LLMs collaboratively
 - Configures `GCP_REGION` (env `GCP_REGION` / `GOOGLE_CLOUD_REGION`, defaults to `global`)
 - Contains `COUNCIL_MODELS`: 3 Gemini models on Vertex AI (`gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`), configurable via `COUNCIL_MODELS` env var
 - Contains `CHAIRMAN_MODEL` (`gemini-3.1-pro-preview`, configurable via `CHAIRMAN_MODEL` env var)
+- Configures `AVAILABLE_EFFORT_LEVELS`: `["default", "minimal", "low", "medium", "high"]`
+- Configures `DEFAULT_MODEL_EFFORTS`: parsed from optional `MODEL_EFFORTS` env var (e.g. `MODEL_EFFORTS="gemini-3.6-flash:low,gemini-3.1-pro-preview:medium"`)
 - Backend runs on **port 8001** (NOT 8000 - user had another app on 8000)
 
 **`vertex.py`**
 - `get_vertex_client()`: Cached singleton `genai.Client(vertexai=True, project=..., location=...)`
-- `query_model()`: Single async model query using Google GenAI SDK (`client.aio.models.generate_content`)
+- `query_model(..., effort=None)`: Single async model query using Google GenAI SDK (`client.aio.models.generate_content`)
+  - Supports reasoning effort mapping (`minimal`, `low`, `medium`, `high`) mapped to `types.ThinkingLevel`
+  - Reverts cleanly to model-set effort (`thinking_config=None`) if effort is `None` or `'default'`
+  - Graceful fallback: If a model rejects an unsupported effort level (e.g. `MINIMAL` on Pro models), logs a warning and automatically retries with model-set effort
 - Disables automatic function calling warning (`disable=True`)
-- `query_models_parallel()`: Parallel queries using `asyncio.gather()`
-- Returns dict with 'content' and optional 'reasoning_details'
+- `query_models_parallel(..., model_efforts=None)`: Parallel queries using `asyncio.gather()` with per-model effort mapping
+- Returns dict with 'content', optional 'reasoning_details', and 'effort'
 - Graceful degradation: returns None on failure, continues with successful responses
 
 **`openrouter.py`**

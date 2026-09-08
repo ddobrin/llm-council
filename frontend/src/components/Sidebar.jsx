@@ -8,6 +8,9 @@ export default function Sidebar({
   onNewConversation,
   councilModels = [],
   chairmanModel = '',
+  modelEfforts = {},
+  onUpdateModelEffort,
+  availableEfforts = ['default', 'minimal', 'low', 'medium', 'high'],
 }) {
   const formatDate = (isoStr) => {
     if (!isoStr) return '';
@@ -73,6 +76,9 @@ export default function Sidebar({
       <DrawerRoster
         councilModels={councilModels}
         chairmanModel={chairmanModel}
+        modelEfforts={modelEfforts}
+        onUpdateModelEffort={onUpdateModelEffort}
+        availableEfforts={availableEfforts}
       />
     </aside>
   );

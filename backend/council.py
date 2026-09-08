@@ -1,24 +1,44 @@
 """3-stage LLM Council orchestration."""
 
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from .vertex import query_models_parallel, query_model
-from .config import COUNCIL_MODELS, CHAIRMAN_MODEL
+from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, DEFAULT_MODEL_EFFORTS
 
 
-async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
+def resolve_model_efforts(model_efforts: Optional[Dict[str, Optional[str]]] = None) -> Dict[str, Optional[str]]:
+    """
+    Resolve effective effort levels by combining configured defaults with runtime overrides.
+    A value of None or 'default' reverts to model set effort (represented as None).
+    """
+    effective: Dict[str, Optional[str]] = dict(DEFAULT_MODEL_EFFORTS)
+    if model_efforts:
+        for model, effort in model_efforts.items():
+            if effort is None or effort.strip().lower() in ("default", "unspecified", "none"):
+                effective[model] = None
+            else:
+                effective[model] = effort.strip().lower()
+    return effective
+
+
+async def stage1_collect_responses(
+    user_query: str,
+    model_efforts: Optional[Dict[str, Optional[str]]] = None
+) -> List[Dict[str, Any]]:
     """
     Stage 1: Collect individual responses from all council models.
 
     Args:
         user_query: The user's question
+        model_efforts: Optional mapping of model ID to effort level
 
     Returns:
-        List of dicts with 'model' and 'response' keys
+        List of dicts with 'model', 'response', and optional 'effort' keys
     """
     messages = [{"role": "user", "content": user_query}]
+    effective_efforts = resolve_model_efforts(model_efforts)
 
-    # Query all models in parallel
-    responses = await query_models_parallel(COUNCIL_MODELS, messages)
+    # Query all models in parallel with configured effort
+    responses = await query_models_parallel(COUNCIL_MODELS, messages, model_efforts=effective_efforts)
 
     # Format results
     stage1_results = []
@@ -26,7 +46,8 @@ async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
         if response is not None:  # Only include successful responses
             stage1_results.append({
                 "model": model,
-                "response": response.get('content', '')
+                "response": response.get('content', ''),
+                "effort": response.get('effort')
             })
 
     return stage1_results
@@ -34,7 +55,8 @@ async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
 
 async def stage2_collect_rankings(
     user_query: str,
-    stage1_results: List[Dict[str, Any]]
+    stage1_results: List[Dict[str, Any]],
+    model_efforts: Optional[Dict[str, Optional[str]]] = None
 ) -> Tuple[List[Dict[str, Any]], Dict[str, str]]:
     """
     Stage 2: Each model ranks the anonymized responses.
@@ -93,9 +115,10 @@ FINAL RANKING:
 Now provide your evaluation and ranking:"""
 
     messages = [{"role": "user", "content": ranking_prompt}]
+    effective_efforts = resolve_model_efforts(model_efforts)
 
     # Get rankings from all council models in parallel
-    responses = await query_models_parallel(COUNCIL_MODELS, messages)
+    responses = await query_models_parallel(COUNCIL_MODELS, messages, model_efforts=effective_efforts)
 
     # Format results
     stage2_results = []
@@ -106,7 +129,8 @@ Now provide your evaluation and ranking:"""
             stage2_results.append({
                 "model": model,
                 "ranking": full_text,
-                "parsed_ranking": parsed
+                "parsed_ranking": parsed,
+                "effort": response.get('effort')
             })
 
     return stage2_results, label_to_model
@@ -115,7 +139,8 @@ Now provide your evaluation and ranking:"""
 async def stage3_synthesize_final(
     user_query: str,
     stage1_results: List[Dict[str, Any]],
-    stage2_results: List[Dict[str, Any]]
+    stage2_results: List[Dict[str, Any]],
+    chairman_effort: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Stage 3: Chairman synthesizes final response.
@@ -124,9 +149,10 @@ async def stage3_synthesize_final(
         user_query: The original user query
         stage1_results: Individual model responses from Stage 1
         stage2_results: Rankings from Stage 2
+        chairman_effort: Optional effort level for chairman model
 
     Returns:
-        Dict with 'model' and 'response' keys
+        Dict with 'model', 'response', and optional 'effort' keys
     """
     # Build comprehensive context for chairman
     stage1_text = "\n\n".join([
@@ -158,19 +184,26 @@ Provide a clear, well-reasoned final answer that represents the council's collec
 
     messages = [{"role": "user", "content": chairman_prompt}]
 
+    # Resolve effort for chairman (defaults to None / model set effort if unset)
+    eff = chairman_effort if chairman_effort is not None else DEFAULT_MODEL_EFFORTS.get(CHAIRMAN_MODEL)
+    if eff and eff.strip().lower() in ("default", "unspecified", "none"):
+        eff = None
+
     # Query the chairman model
-    response = await query_model(CHAIRMAN_MODEL, messages)
+    response = await query_model(CHAIRMAN_MODEL, messages, effort=eff)
 
     if response is None:
         # Fallback if chairman fails
         return {
             "model": CHAIRMAN_MODEL,
-            "response": "Error: Unable to generate final synthesis."
+            "response": "Error: Unable to generate final synthesis.",
+            "effort": None
         }
 
     return {
         "model": CHAIRMAN_MODEL,
-        "response": response.get('content', '')
+        "response": response.get('content', ''),
+        "effort": response.get('effort')
     }
 
 
@@ -295,28 +328,40 @@ Title:"""
     return title
 
 
-async def run_full_council(user_query: str) -> Tuple[List, List, Dict, Dict]:
+async def run_full_council(
+    user_query: str,
+    model_efforts: Optional[Dict[str, Optional[str]]] = None
+) -> Tuple[List, List, Dict, Dict]:
     """
-    Run the complete 3-stage council process.
+    Run the complete 3-stage council process with per-model effort support.
 
     Args:
         user_query: The user's question
+        model_efforts: Optional mapping of model names to effort levels
 
     Returns:
         Tuple of (stage1_results, stage2_results, stage3_result, metadata)
     """
+    efforts = resolve_model_efforts(model_efforts)
+    chairman_effort = efforts.get(CHAIRMAN_MODEL)
+
     # Stage 1: Collect individual responses
-    stage1_results = await stage1_collect_responses(user_query)
+    stage1_results = await stage1_collect_responses(user_query, model_efforts=efforts)
 
     # If no models responded successfully, return error
     if not stage1_results:
         return [], [], {
             "model": "error",
-            "response": "All models failed to respond. Please try again."
+            "response": "All models failed to respond. Please try again.",
+            "effort": None
         }, {}
 
     # Stage 2: Collect rankings
-    stage2_results, label_to_model = await stage2_collect_rankings(user_query, stage1_results)
+    stage2_results, label_to_model = await stage2_collect_rankings(
+        user_query,
+        stage1_results,
+        model_efforts=efforts
+    )
 
     # Calculate aggregate rankings
     aggregate_rankings = calculate_aggregate_rankings(stage2_results, label_to_model)
@@ -325,13 +370,15 @@ async def run_full_council(user_query: str) -> Tuple[List, List, Dict, Dict]:
     stage3_result = await stage3_synthesize_final(
         user_query,
         stage1_results,
-        stage2_results
+        stage2_results,
+        chairman_effort=chairman_effort
     )
 
     # Prepare metadata
     metadata = {
         "label_to_model": label_to_model,
-        "aggregate_rankings": aggregate_rankings
+        "aggregate_rankings": aggregate_rankings,
+        "model_efforts": efforts
     }
 
     return stage1_results, stage2_results, stage3_result, metadata

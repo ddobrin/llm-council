@@ -150,3 +150,24 @@
   color: #9ca3af;
   margin-left: 0.25rem;
 }
+
+.response-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.response-effort-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  background: #ede9fe;
+  color: #6d28d9;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}

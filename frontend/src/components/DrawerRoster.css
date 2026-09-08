@@ -69,9 +69,42 @@
 }
 
 .drawer-roster-name {
+  flex: 1;
+  min-width: 0;
   font-size: 0.8125rem;
   color: #d4d4d8;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.drawer-roster-effort-select {
+  flex-shrink: 0;
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  color: #e4e4e7;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  padding: 0.15rem 0.35rem;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.drawer-roster-effort-select:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #ffffff;
+}
+
+.drawer-roster-effort-select:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 1px #818cf8;
+}
+
+.drawer-roster-effort-select option {
+  background: #18181b;
+  color: #f4f4f5;
 }

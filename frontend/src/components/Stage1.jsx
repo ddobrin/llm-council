@@ -62,6 +62,11 @@ export default function Stage1({
               </div>
               <div className="response-meta">
                 <span>Model: {selectedResponse.model}</span>
+                {selectedResponse.effort && (
+                  <span className="response-effort-badge" title={`Reasoning effort: ${selectedResponse.effort}`}>
+                    Effort: {selectedResponse.effort}
+                  </span>
+                )}
               </div>
             </div>
           )}
