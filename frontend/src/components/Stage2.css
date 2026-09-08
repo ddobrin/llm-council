@@ -1,153 +1,152 @@
-.stage2 {
-  background: #fafafa;
+.model-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #f0f4f8;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-bottom: 1rem;
 }
 
-.stage2 h4 {
-  margin: 20px 0 8px 0;
-  color: #333;
-  font-size: 14px;
+.legend-item {
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: #ffffff;
+  color: #374151;
+}
+
+.legend-item strong {
+  color: #1f2937;
+}
+
+.ranking-display {
+  display: flex;
+  flex-direction: column;
+}
+
+.evaluation-content {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.25rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  line-height: 1.6;
+  max-height: 450px;
+  overflow-y: auto;
+  color: #1f2937;
+}
+
+.ranking-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f0f4f8;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.ranking-section-title {
+  font-size: 0.9rem;
   font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: #1f2937;
 }
 
-.stage2 h4:first-of-type {
-  margin-top: 0;
+.ranking-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+  color: #374151;
 }
 
-.stage-description {
-  margin: 0 0 12px 0;
-  color: #666;
-  font-size: 13px;
-  line-height: 1.5;
+.ranking-list li {
+  margin-bottom: 0.35rem;
+}
+
+.ranking-model-reference {
+  color: #6b7280;
+  margin-left: 0.5rem;
+  font-weight: 400;
 }
 
 .aggregate-rankings {
-  background: #f0f7ff;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  border: 2px solid #d0e7ff;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
 }
 
-.aggregate-rankings h4 {
-  margin: 0 0 12px 0;
-  color: #2a7ae2;
-  font-size: 15px;
+.aggregate-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #1f2937;
 }
 
 .aggregate-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .aggregate-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px;
-  background: #ffffff;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-radius: 6px;
-  border: 1px solid #d0e7ff;
 }
 
-.rank-position {
-  color: #2a7ae2;
-  font-weight: 700;
-  font-size: 16px;
-  min-width: 35px;
-}
-
-.rank-model {
-  flex: 1;
-  color: #333;
-  font-family: monospace;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.rank-score {
-  color: #666;
-  font-size: 13px;
-  font-family: monospace;
-}
-
-.stage2 .tabs {
+.rank-badge {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.stage2 .tab {
-  padding: 8px 16px;
-  background: #ffffff;
-  border: 1px solid #d0d0d0;
-  border-radius: 6px 6px 0 0;
-  color: #666;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.stage2 .tab:hover {
-  background: #f0f0f0;
-  color: #333;
-  border-color: #4a90e2;
-}
-
-.stage2 .tab.active {
-  background: #ffffff;
-  color: #4a90e2;
-  border-color: #4a90e2;
-  border-bottom-color: #ffffff;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 0.75rem;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
-.stage2 .tab-content {
-  background: #ffffff;
-  padding: 16px;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
-  margin-bottom: 20px;
+.rank-1 {
+  background: #fef3c7;
+  color: #92400e;
 }
 
-.ranking-model {
-  color: #888;
-  font-size: 12px;
-  font-family: monospace;
-  margin-bottom: 12px;
+.rank-2 {
+  background: #e5e7eb;
+  color: #374151;
 }
 
-.ranking-content {
-  color: #333;
-  line-height: 1.6;
-  font-size: 14px;
+.rank-3 {
+  background: #fed7aa;
+  color: #9a3412;
 }
 
-.parsed-ranking {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 2px solid #e0e0e0;
+.rank-other {
+  background: #f3f4f6;
+  color: #6b7280;
 }
 
-.parsed-ranking strong {
-  color: #2a7ae2;
-  font-size: 13px;
+.aggregate-model {
+  flex: 1;
+  font-weight: 500;
+  color: #1f2937;
+  font-size: 0.875rem;
 }
 
-.parsed-ranking ol {
-  margin: 8px 0 0 0;
-  padding-left: 24px;
-  color: #333;
+.aggregate-score {
+  font-size: 0.875rem;
+  color: #6b7280;
 }
 
-.parsed-ranking li {
-  margin: 4px 0;
-  font-family: monospace;
-  font-size: 13px;
-}
-
-.rank-count {
-  color: #999;
-  font-size: 12px;
+.aggregate-votes {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  margin-left: 0.25rem;
 }

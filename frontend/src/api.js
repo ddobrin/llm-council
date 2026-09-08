@@ -6,6 +6,21 @@ const API_BASE = 'http://localhost:8001';
 
 export const api = {
   /**
+   * Get current council configuration.
+   */
+  async getCouncil() {
+    try {
+      const response = await fetch(`${API_BASE}/api/council`);
+      if (response.ok) {
+        return response.json();
+      }
+    } catch (e) {
+      console.warn('Failed to fetch council configuration:', e);
+    }
+    return null;
+  },
+
+  /**
    * List all conversations.
    */
   async listConversations() {

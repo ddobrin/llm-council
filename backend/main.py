@@ -10,6 +10,7 @@ import json
 import asyncio
 
 from . import storage
+from .config import COUNCIL_MODELS, CHAIRMAN_MODEL
 from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
 
 app = FastAPI(title="LLM Council API")
@@ -54,6 +55,15 @@ class Conversation(BaseModel):
 async def root():
     """Health check endpoint."""
     return {"status": "ok", "service": "LLM Council API"}
+
+
+@app.get("/api/council")
+async def get_council():
+    """Get the current council configuration."""
+    return {
+        "council_models": COUNCIL_MODELS,
+        "chairman_model": CHAIRMAN_MODEL,
+    }
 
 
 @app.get("/api/conversations", response_model=List[ConversationMetadata])
@@ -111,7 +121,8 @@ async def send_message(conversation_id: str, request: SendMessageRequest):
         conversation_id,
         stage1_results,
         stage2_results,
-        stage3_result
+        stage3_result,
+        metadata
     )
 
     # Return the complete response with metadata
@@ -170,11 +181,16 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
                 yield f"data: {json.dumps({'type': 'title_complete', 'data': {'title': title}})}\n\n"
 
             # Save complete assistant message
+            metadata = {
+                "label_to_model": label_to_model,
+                "aggregate_rankings": aggregate_rankings
+            }
             storage.add_assistant_message(
                 conversation_id,
                 stage1_results,
                 stage2_results,
-                stage3_result
+                stage3_result,
+                metadata
             )
 
             # Send completion event

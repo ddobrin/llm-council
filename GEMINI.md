@@ -12,7 +12,7 @@ LLM Council is a 3-stage deliberation system where multiple LLMs collaboratively
 
 **`config.py`**
 - Configures `GCP_PROJECT_ID` (env `GCP_PROJECT_ID` / `GOOGLE_CLOUD_PROJECT`, defaults to `genai-playground24`)
-- Configures `GCP_REGION` (env `GCP_REGION` / `GOOGLE_CLOUD_REGION`, defaults to `us-central1`)
+- Configures `GCP_REGION` (env `GCP_REGION` / `GOOGLE_CLOUD_REGION`, defaults to `global`)
 - Contains `COUNCIL_MODELS`: 3 Gemini models on Vertex AI (`gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`), configurable via `COUNCIL_MODELS` env var
 - Contains `CHAIRMAN_MODEL` (`gemini-2.5-pro`, configurable via `CHAIRMAN_MODEL` env var)
 - Backend runs on **port 8001** (NOT 8000 - user had another app on 8000)
@@ -49,42 +49,59 @@ LLM Council is a 3-stage deliberation system where multiple LLMs collaboratively
 
 **`main.py`**
 - FastAPI app with CORS enabled for localhost:5173 and localhost:3000
+- GET `/api/council` returns configured council models and chairman model
 - POST `/api/conversations/{id}/message` returns metadata in addition to stages
 - POST `/api/conversations/{id}/message/stream` SSE streaming endpoint for stage progress
 - Metadata includes: label_to_model mapping and aggregate_rankings
+- Metadata is now persisted in storage for saved session reload
 
 ### Frontend Structure (`frontend/src/`)
 
+Aligned with `llm-council-adk-java` Look & Feel:
+
 **`App.jsx`**
-- Main orchestration: manages conversations list and current conversation
-- Handles message sending and metadata storage
-- Important: metadata is stored in the UI state for display but not persisted to backend JSON
+- Orchestrates conversations list, active conversation, council configuration (`api.getCouncil()`), and streaming deliberation state.
+- Tracks active stage and progress metrics during deliberation.
+
+**`components/Sidebar.jsx` & `components/DrawerRoster.jsx`**
+- Matches Java `MainLayout` drawer: dark gradient theme (`linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)`).
+- Header with gradient text (`linear-gradient(90deg, #60a5fa, #a78bfa)`), subtitle "Collaborative AI Deliberation", and "+ New Session" button.
+- Saved sessions list with active indigo highlight (`rgba(99, 102, 241, 0.25)`).
+- At-a-glance **Council Roster** widget at the bottom: displays Chair (`CH` glyph, purple border, avatar dot, model name) and Council Members (Seat `A`, `B`, `C` glyphs with indigo gradient, avatar color dots, model names).
 
 **`components/ChatInterface.jsx`**
-- Multiline textarea (3 rows, resizable)
-- Enter to send, Shift+Enter for new line
-- User messages wrapped in markdown-content class for padding
+- Matches Java `CouncilView`: Top navbar with "LLM Council" and active "ADK Workflow Council" button.
+- Query card (`.query-section`) with "Ask the Council" label and textarea.
+- Primary **"Consult the Council"** gradient button (`linear-gradient(135deg, #6366f1, #8b5cf6)`) with tooltip explaining the 3 deliberation stages, plus "Start New Session" tertiary button.
+- Animated progress bar section during deliberation displaying live stage label and percentage.
 
-**`components/Stage1.jsx`**
-- Tab view of individual model responses
-- ReactMarkdown rendering with markdown-content wrapper
+**`components/StageHeader.jsx`**
+- Reusable stage header with circular numbered gradient badge (28x28px, `linear-gradient(135deg, #6366f1, #8b5cf6)`), stage title, and animated loading spinner with status text.
 
-**`components/Stage2.jsx`**
-- **Critical Feature**: Tab view showing RAW evaluation text from each model
-- De-anonymization happens CLIENT-SIDE for display (models receive anonymous labels)
-- Shows "Extracted Ranking" below each evaluation so users can validate parsing
-- Aggregate rankings shown with average position and vote count
-- Explanatory text clarifies that boldface model names are for readability only
+**`components/Stage1.jsx` (Individual Responses)**
+- `.stage-panel` card container.
+- Segmented pill tabs with colored model avatar dots, seat label badges (`Model A`, `Model B`, `Model C`), and friendly model names.
+- Response markdown container (`#f9fafb`, border-radius 8px, line-height 1.6, scrollable) with metadata footer.
 
-**`components/Stage3.jsx`**
-- Final synthesized answer from chairman
-- Green-tinted background (#f0fff0) to highlight conclusion
+**`components/Stage2.jsx` (Peer Review & Rankings)**
+- `.stage-panel` card container.
+- Model legend at the top (`.model-legend`) with pill badges mapping `Model A`, `Model B`, etc. to models.
+- Evaluator tabs with model avatar dots.
+- Raw review content with de-anonymized names bolded for readability.
+- Styled Final Ranking numbered section (`#f0f4f8` container).
+- Aggregate rankings ("Street Cred") with ranked circular badges (Gold `#fef3c7`/`#92400e`, Silver `#e5e7eb`/`#374151`, Bronze `#fed7aa`/`#9a3412`).
+
+**`components/Stage3.jsx` (Final Synthesis)**
+- `.stage-panel` card container.
+- Final response in sky-blue gradient card (`linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)`) with deep blue headers (`#1e40af`).
+- Chairman badge (`.chairman-badge`) at bottom: "Synthesized by <Chairman Name>".
+
+**`utils/councilUtils.js`**
+- Helpers for model name formatting, avatar colors, seat lettering (`A`, `B`, `C`), dynamic label-to-model mapping, and de-anonymization.
 
 **Styling (`*.css`)**
-- Light mode theme (not dark mode)
-- Primary color: #4a90e2 (blue)
-- Global markdown styling in `index.css` with `.markdown-content` class
-- 12px padding on all markdown content to prevent cluttered appearance
+- Theme palette: Background `#f3f4f6`, cards `#ffffff` (radius 12px, shadow `0 1px 3px rgba(0,0,0,0.1)`), primary accent `#6366f1` / `#8b5cf6`.
+- Sleek modern scrollbars and typography matching the Java Vaadin implementation.
 
 ## Key Design Decisions
 

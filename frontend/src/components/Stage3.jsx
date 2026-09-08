@@ -1,22 +1,33 @@
 import ReactMarkdown from 'react-markdown';
+import StageHeader from './StageHeader';
+import { formatModelName } from '../utils/councilUtils';
+import './StageHeader.css';
 import './Stage3.css';
 
-export default function Stage3({ finalResponse }) {
-  if (!finalResponse) {
+export default function Stage3({ finalResponse, isLoading = false }) {
+  if (!finalResponse && !isLoading) {
     return null;
   }
 
   return (
-    <div className="stage stage3">
-      <h3 className="stage-title">Stage 3: Final Council Answer</h3>
-      <div className="final-response">
-        <div className="chairman-label">
-          Chairman: {finalResponse.model.split('/')[1] || finalResponse.model}
+    <section className="stage-panel stage3-panel">
+      <StageHeader
+        stageNumber={3}
+        title="Final Synthesis"
+        isLoading={isLoading}
+        loadingText="Council Chairman synthesizing..."
+      />
+
+      {finalResponse && (
+        <div className="final-response">
+          <div className="final-response-content markdown-content">
+            <ReactMarkdown>{finalResponse.response || ''}</ReactMarkdown>
+          </div>
+          <div className="chairman-badge">
+            <span>Synthesized by {formatModelName(finalResponse.model)}</span>
+          </div>
         </div>
-        <div className="final-text markdown-content">
-          <ReactMarkdown>{finalResponse.response}</ReactMarkdown>
-        </div>
-      </div>
-    </div>
+      )}
+    </section>
   );
 }

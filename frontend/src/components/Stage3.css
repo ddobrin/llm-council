@@ -1,25 +1,35 @@
-.stage3 {
-  background: #f0fff0;
-  border-color: #c8e6c8;
-}
-
 .final-response {
-  background: #ffffff;
-  padding: 20px;
-  border-radius: 6px;
-  border: 1px solid #c8e6c8;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 1.5rem;
 }
 
-.chairman-label {
-  color: #2d8a2d;
-  font-size: 12px;
-  font-family: monospace;
-  margin-bottom: 12px;
-  font-weight: 600;
-}
-
-.final-text {
-  color: #333;
+.final-response-content {
   line-height: 1.7;
-  font-size: 15px;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+.final-response-content h1,
+.final-response-content h2,
+.final-response-content h3,
+.final-response-content h4 {
+  color: #1e40af;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.chairman-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #1e40af;
+  margin-top: 1.25rem;
+  font-weight: 500;
 }

@@ -1,65 +1,79 @@
-.stage {
-  margin: 24px 0;
-  padding: 20px;
-  background: #fafafa;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-}
-
-.stage-title {
-  margin: 0 0 16px 0;
-  color: #333;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.tabs {
+.response-tabs {
   display: flex;
+  gap: 4px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 4px;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+}
+
+.response-tab {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.tab {
   padding: 8px 16px;
-  background: #ffffff;
-  border: 1px solid #d0d0d0;
-  border-radius: 6px 6px 0 0;
-  color: #666;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.tab:hover {
-  background: #f0f0f0;
-  color: #333;
-  border-color: #4a90e2;
-}
-
-.tab.active {
-  background: #ffffff;
-  color: #4a90e2;
-  border-color: #4a90e2;
-  border-bottom-color: #ffffff;
-  font-weight: 600;
-}
-
-.tab-content {
-  background: #ffffff;
-  padding: 16px;
+  border: none;
+  background: transparent;
+  color: #4b5563;
+  font-size: 0.875rem;
+  font-weight: 500;
   border-radius: 6px;
-  border: 1px solid #e0e0e0;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+  font-family: inherit;
 }
 
-.model-name {
-  color: #888;
-  font-size: 12px;
-  margin-bottom: 12px;
-  font-family: monospace;
+.response-tab:hover {
+  background: rgba(255, 255, 255, 0.6);
+  color: #111827;
 }
 
-.response-text {
-  color: #333;
+.response-tab.active {
+  background: #ffffff;
+  color: #111827;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.model-label-badge {
+  display: inline-block;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.tab-model-name {
+  font-size: 0.875rem;
+}
+
+.response-display {
+  display: flex;
+  flex-direction: column;
+}
+
+.response-content {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.25rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   line-height: 1.6;
+  max-height: 450px;
+  overflow-y: auto;
+  color: #1f2937;
+}
+
+.response-meta {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: #6b7280;
 }

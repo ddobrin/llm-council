@@ -1,145 +1,197 @@
-import { useState, useEffect, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { useState } from 'react';
 import Stage1 from './Stage1';
 import Stage2 from './Stage2';
 import Stage3 from './Stage3';
+import { computeLabelToModel } from '../utils/councilUtils';
 import './ChatInterface.css';
 
 export default function ChatInterface({
   conversation,
   onSendMessage,
+  onNewSession,
   isLoading,
+  councilModels = [],
 }) {
   const [input, setInput] = useState('');
-  const messagesEndRef = useRef(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [conversation]);
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (input.trim() && !isLoading) {
-      onSendMessage(input);
+      onSendMessage(input.trim());
       setInput('');
     }
   };
 
   const handleKeyDown = (e) => {
-    // Submit on Enter (without Shift)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }
   };
 
-  if (!conversation) {
-    return (
-      <div className="chat-interface">
-        <div className="empty-state">
-          <h2>Welcome to LLM Council</h2>
-          <p>Create a new conversation to get started</p>
-        </div>
-      </div>
-    );
+  // Find the last assistant message to determine active progress & stage
+  const messages = conversation?.messages || [];
+  const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+  const isLastAssistant = lastMessage?.role === 'assistant';
+
+  let currentStageLabel = '';
+  let progressPercent = 0;
+
+  if (isLoading && isLastAssistant) {
+    if (lastMessage.loading?.stage1) {
+      currentStageLabel = 'Individual Review: Collecting Responses...';
+      progressPercent = 33;
+    } else if (lastMessage.loading?.stage2) {
+      currentStageLabel = 'Peer Ranking: Evaluating Responses...';
+      progressPercent = 66;
+    } else if (lastMessage.loading?.stage3) {
+      currentStageLabel = 'Final Synthesis: Chairman Deliberating...';
+      progressPercent = 95;
+    } else {
+      currentStageLabel = 'Consulting the Council...';
+      progressPercent = 15;
+    }
+  } else if (!isLoading && messages.length > 0 && isLastAssistant && lastMessage.stage3) {
+    currentStageLabel = 'Complete';
+    progressPercent = 100;
   }
 
   return (
-    <div className="chat-interface">
-      <div className="messages-container">
-        {conversation.messages.length === 0 ? (
-          <div className="empty-state">
-            <h2>Start a conversation</h2>
-            <p>Ask a question to consult the LLM Council</p>
-          </div>
-        ) : (
-          conversation.messages.map((msg, index) => (
-            <div key={index} className="message-group">
-              {msg.role === 'user' ? (
-                <div className="user-message">
-                  <div className="message-label">You</div>
-                  <div className="message-content">
-                    <div className="markdown-content">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="assistant-message">
-                  <div className="message-label">LLM Council</div>
-
-                  {/* Stage 1 */}
-                  {msg.loading?.stage1 && (
-                    <div className="stage-loading">
-                      <div className="spinner"></div>
-                      <span>Running Stage 1: Collecting individual responses...</span>
-                    </div>
-                  )}
-                  {msg.stage1 && <Stage1 responses={msg.stage1} />}
-
-                  {/* Stage 2 */}
-                  {msg.loading?.stage2 && (
-                    <div className="stage-loading">
-                      <div className="spinner"></div>
-                      <span>Running Stage 2: Peer rankings...</span>
-                    </div>
-                  )}
-                  {msg.stage2 && (
-                    <Stage2
-                      rankings={msg.stage2}
-                      labelToModel={msg.metadata?.label_to_model}
-                      aggregateRankings={msg.metadata?.aggregate_rankings}
-                    />
-                  )}
-
-                  {/* Stage 3 */}
-                  {msg.loading?.stage3 && (
-                    <div className="stage-loading">
-                      <div className="spinner"></div>
-                      <span>Running Stage 3: Final synthesis...</span>
-                    </div>
-                  )}
-                  {msg.stage3 && <Stage3 finalResponse={msg.stage3} />}
-                </div>
-              )}
-            </div>
-          ))
-        )}
-
-        {isLoading && (
-          <div className="loading-indicator">
-            <div className="spinner"></div>
-            <span>Consulting the council...</span>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {conversation.messages.length === 0 && (
-        <form className="input-form" onSubmit={handleSubmit}>
-          <textarea
-            className="message-input"
-            placeholder="Ask your question... (Shift+Enter for new line, Enter to send)"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={isLoading}
-            rows={3}
-          />
-          <button
-            type="submit"
-            className="send-button"
-            disabled={!input.trim() || isLoading}
-          >
-            Send
+    <div className="chat-layout">
+      {/* Top Navbar matching Java MainLayout */}
+      <header className="top-navbar">
+        <h2 className="navbar-title">LLM Council</h2>
+        <div className="view-switcher">
+          <button type="button" className="view-switch-btn active">
+            LLM Workflow Council
           </button>
-        </form>
-      )}
+        </div>
+      </header>
+
+      {/* Main scrollable content */}
+      <main className="main-content-scroll">
+        <div className="council-view">
+          {/* Query Section */}
+          <section className="query-section">
+            <label className="query-label" htmlFor="council-query">
+              Ask the Council
+            </label>
+            <textarea
+              id="council-query"
+              className="query-input"
+              placeholder="Enter your question for the LLM Council..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isLoading}
+              rows={3}
+            />
+
+            <div className="mode-actions">
+              <div className="mode-action-btn-wrapper">
+                <button
+                  type="button"
+                  className="btn-primary-action"
+                  onClick={handleSubmit}
+                  disabled={!input.trim() || isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="btn-spinner" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    'Consult the Council'
+                  )}
+                </button>
+                <div className="btn-tooltip">
+                  3 stages. Every model answers, ranks the others anonymously, then the chairman writes one synthesized answer.
+                </div>
+              </div>
+            </div>
+
+            {messages.length > 0 && !isLoading && (
+              <div className="new-session-action">
+                <button
+                  type="button"
+                  className="btn-tertiary"
+                  onClick={() => {
+                    setInput('');
+                    if (onNewSession) onNewSession();
+                  }}
+                >
+                  Start New Session
+                </button>
+              </div>
+            )}
+          </section>
+
+          {/* Progress Section */}
+          {isLoading && (
+            <section className="progress-section">
+              <div className="progress-label">{currentStageLabel}</div>
+              <div className="progress-bar-track">
+                <div
+                  className="progress-bar-fill"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </section>
+          )}
+
+          {/* Messages / Deliberation Flow */}
+          {messages.map((msg, index) => {
+            if (msg.role === 'user') {
+              return (
+                <div key={index} className="user-query-card">
+                  <div className="user-query-header">
+                    <span className="user-badge">Question</span>
+                  </div>
+                  <div className="user-query-text">{msg.content}</div>
+                </div>
+              );
+            }
+
+            if (msg.role === 'assistant') {
+              // Ensure labelToModel is available
+              const labelToModel =
+                msg.metadata?.label_to_model ||
+                computeLabelToModel(msg.stage1, councilModels);
+
+              const aggregateRankings = msg.metadata?.aggregate_rankings;
+
+              return (
+                <div key={index} className="assistant-stages-group">
+                  {/* Stage 1: Individual Review */}
+                  <Stage1
+                    responses={msg.stage1}
+                    isLoading={msg.loading?.stage1}
+                    totalModels={councilModels.length || 3}
+                    labelToModel={labelToModel}
+                  />
+
+                  {/* Stage 2: Peer Review & Rankings */}
+                  <Stage2
+                    rankings={msg.stage2}
+                    labelToModel={labelToModel}
+                    aggregateRankings={aggregateRankings}
+                    isLoading={msg.loading?.stage2}
+                    totalModels={councilModels.length || 3}
+                  />
+
+                  {/* Stage 3: Final Synthesis */}
+                  <Stage3
+                    finalResponse={msg.stage3}
+                    isLoading={msg.loading?.stage3}
+                  />
+                </div>
+              );
+            }
+
+            return null;
+          })}
+        </div>
+      </main>
     </div>
   );
 }
