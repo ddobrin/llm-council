@@ -20,19 +20,31 @@ GCP_REGION = (
     or "global"
 )
 
-# Council members - 3 Gemini models on Vertex AI
+# Council members - default hybrid council on Vertex AI (changeable via COUNCIL_MODELS in .env)
 COUNCIL_MODELS_ENV = os.getenv("COUNCIL_MODELS")
 if COUNCIL_MODELS_ENV:
     COUNCIL_MODELS = [m.strip() for m in COUNCIL_MODELS_ENV.split(",") if m.strip()]
 else:
     COUNCIL_MODELS = [
-        "gemini-3.6-flash",
-        "gemini-3.7-flash",
         "gemini-3.8-flash",
+        "claude-sonnet-5",
+        "claude-opus-5",
     ]
 
-# Chairman model - synthesizes final response (Gemini 3.1 Pro Preview has highest reasoning capability)
+# Chairman model - synthesizes final response (changeable via CHAIRMAN_MODEL in .env)
 CHAIRMAN_MODEL = os.getenv("CHAIRMAN_MODEL", "gemini-3.1-pro-preview")
+
+# Vertex AI Anthropic Region (defaults to GCP_REGION, changeable via VERTEX_AI_ANTHROPIC_REGION in .env)
+VERTEX_AI_ANTHROPIC_REGION = os.getenv("VERTEX_AI_ANTHROPIC_REGION") or GCP_REGION
+
+
+def is_claude_model(model: str) -> bool:
+    """Check if model identifier represents an Anthropic Claude model."""
+    if not model:
+        return False
+    norm = model.lower()
+    return norm.startswith("claude") or norm.startswith("anthropic/") or "claude" in norm
+
 
 # Supported reasoning effort levels for Gemini models on Vertex AI
 AVAILABLE_EFFORT_LEVELS = ["default", "minimal", "low", "medium", "high"]

@@ -5,9 +5,11 @@ from typing import List, Dict, Any, Optional
 from google import genai
 from google.genai import types
 
-from .config import GCP_PROJECT_ID, GCP_REGION
+from .config import GCP_PROJECT_ID, GCP_REGION, is_claude_model
+from .claude import query_claude_model
 
 _client: Optional[genai.Client] = None
+
 
 
 def get_vertex_client() -> genai.Client:
@@ -52,18 +54,26 @@ async def query_model(
     effort: Optional[str] = None
 ) -> Optional[Dict[str, Any]]:
     """
-    Query a single Gemini model via Vertex AI with optional reasoning effort.
+    Query a single model (Gemini or Claude) via Vertex AI with optional reasoning effort.
 
     Args:
-        model: Vertex AI Gemini model identifier (e.g., "gemini-3.6-flash", "gemini-3.1-pro-preview")
+        model: Vertex AI model identifier (e.g., "gemini-3.7-flash", "claude-sonnet-5", "claude-opus-5")
         messages: List of message dicts with 'role' and 'content'
         timeout: Request timeout in seconds
         effort: Optional reasoning effort ("minimal", "low", "medium", "high").
-                If None or "default", reverts to model set effort (no thinking_config).
+                If None or "default", reverts to model set effort.
 
     Returns:
         Response dict with 'content', optional 'reasoning_details', and 'effort', or None if failed
     """
+    if is_claude_model(model):
+        return await query_claude_model(
+            model=model,
+            messages=messages,
+            timeout=timeout,
+            effort=effort,
+        )
+
     model_name = _normalize_model_name(model)
 
     contents: List[types.Content] = []

@@ -12,4 +12,5 @@ dependencies = [
     "pydantic>=2.9.0",
     "google-genai>=2.22.0",
     "google-auth>=2.57.1",
+    "anthropic[vertex]>=0.40.0",
 ]

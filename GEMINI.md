@@ -13,20 +13,32 @@ LLM Council is a 3-stage deliberation system where multiple LLMs collaboratively
 **`config.py`**
 - Configures `GCP_PROJECT_ID` (env `GCP_PROJECT_ID` / `GOOGLE_CLOUD_PROJECT`, defaults to `genai-playground24`)
 - Configures `GCP_REGION` (env `GCP_REGION` / `GOOGLE_CLOUD_REGION`, defaults to `global`)
-- Contains `COUNCIL_MODELS`: 3 Gemini models on Vertex AI (`gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`), configurable via `COUNCIL_MODELS` env var
+- Contains `COUNCIL_MODELS`: default hybrid council on Vertex AI (`gemini-3.7-flash`, `claude-sonnet-5`, `claude-opus-5`), configurable via `COUNCIL_MODELS` env var
 - Contains `CHAIRMAN_MODEL` (`gemini-3.1-pro-preview`, configurable via `CHAIRMAN_MODEL` env var)
+- Configures `VERTEX_AI_ANTHROPIC_REGION`: (defaults to `GCP_REGION` / `global`, configurable via `VERTEX_AI_ANTHROPIC_REGION` env var)
 - Configures `AVAILABLE_EFFORT_LEVELS`: `["default", "minimal", "low", "medium", "high"]`
-- Configures `DEFAULT_MODEL_EFFORTS`: parsed from optional `MODEL_EFFORTS` env var (e.g. `MODEL_EFFORTS="gemini-3.6-flash:low,gemini-3.1-pro-preview:medium"`)
+- Configures `DEFAULT_MODEL_EFFORTS`: parsed from optional `MODEL_EFFORTS` env var (e.g. `MODEL_EFFORTS="gemini-3.7-flash:default,claude-sonnet-5:low,claude-opus-5:medium,gemini-3.1-pro-preview:high"`)
+- Helper `is_claude_model(model)`: identifies Claude models for routing
 - Backend runs on **port 8001** (NOT 8000 - user had another app on 8000)
 
+**`claude.py`**
+- `get_anthropic_vertex_client()`: Cached singleton `AsyncAnthropicVertex(project_id=..., region=...)` using Google Cloud Application Default Credentials (ADC) — **no API keys required**
+- `query_claude_model(..., effort=None)`: Async model query using Anthropic Python SDK with Vertex AI integration
+  - Maps messages to Anthropic format (extracts top-level `system` prompt parameter, maps roles `user`/`assistant`)
+  - Supports reasoning effort mapping (`minimal`, `low`, `medium`, `high`) mapped to adaptive thinking (`thinking={"type": "adaptive"}`, `output_config={"effort": ...}`)
+  - Graceful fallback: If a model rejects thinking configuration, logs a warning and retries with standard generation
+  - Extracts text and thinking blocks (`reasoning_details`)
+  - Returns dict with 'content', optional 'reasoning_details', and 'effort'
+
 **`vertex.py`**
+- Unified multi-provider router preserving 100% backward compatibility
 - `get_vertex_client()`: Cached singleton `genai.Client(vertexai=True, project=..., location=...)`
-- `query_model(..., effort=None)`: Single async model query using Google GenAI SDK (`client.aio.models.generate_content`)
-  - Supports reasoning effort mapping (`minimal`, `low`, `medium`, `high`) mapped to `types.ThinkingLevel`
+- `query_model(..., effort=None)`: Routes to `query_claude_model` if `is_claude_model(model)` is true; otherwise queries Gemini using Google GenAI SDK (`client.aio.models.generate_content`)
+  - Supports Gemini reasoning effort mapping (`minimal`, `low`, `medium`, `high`) mapped to `types.ThinkingLevel`
   - Reverts cleanly to model-set effort (`thinking_config=None`) if effort is `None` or `'default'`
-  - Graceful fallback: If a model rejects an unsupported effort level (e.g. `MINIMAL` on Pro models), logs a warning and automatically retries with model-set effort
+  - Graceful fallback: If a model rejects an unsupported effort level, logs a warning and automatically retries with model-set effort
 - Disables automatic function calling warning (`disable=True`)
-- `query_models_parallel(..., model_efforts=None)`: Parallel queries using `asyncio.gather()` with per-model effort mapping
+- `query_models_parallel(..., model_efforts=None)`: Parallel queries across Gemini and Claude models concurrently using `asyncio.gather()` with per-model effort mapping
 - Returns dict with 'content', optional 'reasoning_details', and 'effort'
 - Graceful degradation: returns None on failure, continues with successful responses
 

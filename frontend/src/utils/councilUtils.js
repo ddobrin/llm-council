@@ -11,6 +11,7 @@ const MODEL_NAME_MAP = {
   'gemini-2.5-flash': 'Gemini 2.5 Flash',
   'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
   'claude-opus-5': 'Claude Opus 5',
+  'claude-sonnet-5': 'Claude Sonnet 5',
   'claude-opus-4-8': 'Claude Opus 4.8',
   'claude-haiku-4-5': 'Claude Haiku 4.5',
   'claude-fable-5': 'Claude Fable 5',
@@ -24,8 +25,11 @@ const MODEL_COLOR_MAP = {
   'gemini-2.5-pro': '#4285f4',
   'gemini-2.5-flash': '#1da1f2',
   'gemini-2.5-flash-lite': '#d97706',
-  'claude-opus-5': '#10a37f',
-  'claude-fable-5': '#d97706',
+  'claude-opus-5': '#10a37f', // emerald
+  'claude-sonnet-5': '#da7756', // anthropic coral / terracotta
+  'claude-fable-5': '#8b5cf6', // purple
+  'claude-opus-4-8': '#10a37f',
+  'claude-haiku-4-5': '#f59e0b',
 };
 
 const PALETTE = ['#4285f4', '#1da1f2', '#d97706', '#10a37f', '#8b5cf6', '#ec4899'];
