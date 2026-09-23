@@ -27,7 +27,7 @@ if COUNCIL_MODELS_ENV:
 else:
     COUNCIL_MODELS = [
         "gemini-3.8-flash",
-        "claude-sonnet-5",
+        "claude-opus-5-5",
         "claude-opus-5",
     ]
 
