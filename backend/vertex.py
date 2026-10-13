@@ -57,7 +57,7 @@ async def query_model(
     Query a single model (Gemini or Claude) via Vertex AI with optional reasoning effort.
 
     Args:
-        model: Vertex AI model identifier (e.g., "gemini-3.7-flash", "claude-sonnet-5", "claude-opus-5")
+        model: Vertex AI model identifier (e.g., "gemini-3.8-flash", "claude-sonnet-5-5", "claude-opus-5-5")
         messages: List of message dicts with 'role' and 'content'
         timeout: Request timeout in seconds
         effort: Optional reasoning effort ("minimal", "low", "medium", "high").

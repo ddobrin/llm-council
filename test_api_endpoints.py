@@ -21,6 +21,8 @@ async def test_api():
         council_info = resp.json()
         assert "council_models" in council_info
         assert "chairman_model" in council_info
+        assert "supported_chairman_models" in council_info
+        assert "gemini-3.8-flash" in council_info["supported_chairman_models"]
         assert "available_efforts" in council_info
         assert "default_efforts" in council_info
         assert "default" in council_info["available_efforts"]
@@ -41,20 +43,22 @@ async def test_api():
         assert any(c["id"] == conv_id for c in convs)
         print(f"✓ Listed {len(convs)} conversations")
 
-        # 4. Test streaming message with per-model effort
-        print("\nTesting /message/stream SSE endpoint with per-model effort...")
+        # 4. Test streaming message with per-model effort & custom chairman_model
+        print("\nTesting /message/stream SSE endpoint with per-model effort & chairman_model...")
         events = []
         model_efforts_payload = {
             "gemini-3.6-flash": "low",
             "gemini-3.7-flash": "default",
-            "gemini-3.1-pro-preview": "low",
+            "gemini-3.8-flash": "low",
         }
+        complete_metadata = None
         async with client.stream(
             "POST",
             f"/api/conversations/{conv_id}/message/stream",
             json={
                 "content": "What is 2 + 2?",
                 "model_efforts": model_efforts_payload,
+                "chairman_model": "gemini-3.8-flash"
             }
         ) as stream_resp:
             assert stream_resp.status_code == 200
@@ -63,6 +67,8 @@ async def test_api():
                     payload = json.loads(line[6:])
                     event_type = payload.get("type")
                     events.append(event_type)
+                    if event_type == "complete":
+                        complete_metadata = payload.get("metadata")
                     print(f"  SSE event: {event_type}")
 
         expected_events = [
@@ -77,6 +83,10 @@ async def test_api():
         ]
         for ev in expected_events:
             assert ev in events, f"Missing event: {ev}"
+
+        assert complete_metadata is not None
+        assert "chairman_model" in complete_metadata
+        assert complete_metadata["chairman_model"] == "gemini-3.8-flash"
 
         print("\n✓ All SSE events received successfully!")
 
@@ -93,8 +103,10 @@ async def test_api():
             print(f"  Model {item['model']} effort: {item.get('effort')}")
         stage3_item = conv_detail["messages"][1]["stage3"]
         print(f"  Chairman {stage3_item['model']} effort: {stage3_item.get('effort')}")
+        assert stage3_item["model"] == "gemini-3.8-flash"
         assert "model_efforts" in conv_detail["messages"][1]["metadata"]
-        print(f"✓ Conversation persisted with title: '{conv_detail['title']}' and model_efforts metadata")
+        assert conv_detail["messages"][1]["metadata"].get("chairman_model") == "gemini-3.8-flash"
+        print(f"✓ Conversation persisted with title: '{conv_detail['title']}' and chairman_model metadata")
         print("\nAPI tests PASSED!")
 
 

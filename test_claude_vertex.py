@@ -10,9 +10,9 @@ async def test_claude():
     print(f"=== Vertex AI Claude Test Configuration ===")
     print(f"GCP Project ID: {GCP_PROJECT_ID}")
     print(f"Vertex AI Anthropic Region: {VERTEX_AI_ANTHROPIC_REGION}")
-    print(f"is_claude_model('claude-sonnet-5'): {is_claude_model('claude-sonnet-5')}")
-    print(f"is_claude_model('claude-opus-5'): {is_claude_model('claude-opus-5')}")
-    print(f"is_claude_model('gemini-3.7-flash'): {is_claude_model('gemini-3.7-flash')}")
+    print(f"is_claude_model('claude-sonnet-5-5'): {is_claude_model('claude-sonnet-5-5')}")
+    print(f"is_claude_model('claude-opus-5-5'): {is_claude_model('claude-opus-5-5')}")
+    print(f"is_claude_model('gemini-3.8-flash'): {is_claude_model('gemini-3.8-flash')}")
 
     client = get_anthropic_vertex_client()
     print(f"Client initialized: {type(client).__name__} (project={client.project_id}, region={client.region})")

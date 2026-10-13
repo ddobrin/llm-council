@@ -14,7 +14,7 @@ function App() {
       'gemini-3.7-flash',
       'gemini-3.8-flash',
     ],
-    chairman_model: 'gemini-3.1-pro-preview',
+    chairman_model: 'gemini-4-argon',
     available_efforts: ['default', 'minimal', 'low', 'medium', 'high'],
     default_efforts: {},
   });

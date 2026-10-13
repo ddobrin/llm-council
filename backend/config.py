@@ -32,7 +32,7 @@ else:
     ]
 
 # Chairman model - synthesizes final response (changeable via CHAIRMAN_MODEL in .env)
-CHAIRMAN_MODEL = os.getenv("CHAIRMAN_MODEL", "gemini-3.1-pro-preview")
+CHAIRMAN_MODEL = os.getenv("CHAIRMAN_MODEL", "gemini-4-argon")
 
 # Vertex AI Anthropic Region (defaults to GCP_REGION, changeable via VERTEX_AI_ANTHROPIC_REGION in .env)
 VERTEX_AI_ANTHROPIC_REGION = os.getenv("VERTEX_AI_ANTHROPIC_REGION") or GCP_REGION
@@ -49,7 +49,7 @@ def is_claude_model(model: str) -> bool:
 # Supported reasoning effort levels for Gemini models on Vertex AI
 AVAILABLE_EFFORT_LEVELS = ["default", "minimal", "low", "medium", "high"]
 
-# Optional default per-model effort configuration (e.g. MODEL_EFFORTS="gemini-3.6-flash:low,gemini-3.1-pro-preview:high")
+# Optional default per-model effort configuration (e.g. MODEL_EFFORTS="gemini-3.6-flash:low,gemini-4-argon:high")
 DEFAULT_MODEL_EFFORTS = {}
 model_efforts_env = os.getenv("MODEL_EFFORTS") or os.getenv("COUNCIL_MODEL_EFFORTS")
 if model_efforts_env:
