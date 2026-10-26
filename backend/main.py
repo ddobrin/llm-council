@@ -10,8 +10,12 @@ import json
 import asyncio
 
 from . import storage
-from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, AVAILABLE_EFFORT_LEVELS, DEFAULT_MODEL_EFFORTS
+from . import pipeline_runner
+from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, AVAILABLE_EFFORT_LEVELS, DEFAULT_MODEL_EFFORTS, get_council_pipeline
 from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
+
+# Fail-fast check on startup for pipeline configuration
+get_council_pipeline()
 
 app = FastAPI(title="LLM Council API")
 
@@ -115,7 +119,7 @@ async def send_message(conversation_id: str, request: SendMessageRequest):
         storage.update_conversation_title(conversation_id, title)
 
     # Run the 3-stage council process with per-model efforts
-    stage1_results, stage2_results, stage3_result, metadata = await run_full_council(
+    stage1_results, stage2_results, stage3_result, metadata = await pipeline_runner.run_council(
         request.content,
         model_efforts=request.model_efforts
     )
@@ -164,53 +168,55 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
             if is_first_message:
                 title_task = asyncio.create_task(generate_conversation_title(request.content))
 
-            # Stage 1: Collect responses
-            yield f"data: {json.dumps({'type': 'stage1_start'})}\n\n"
-            stage1_results = await stage1_collect_responses(request.content, model_efforts=model_efforts)
-            yield f"data: {json.dumps({'type': 'stage1_complete', 'data': stage1_results})}\n\n"
+            stage1_results = None
+            stage2_results = None
+            stage3_result = None
+            final_metadata = None
 
-            # Stage 2: Collect rankings
-            yield f"data: {json.dumps({'type': 'stage2_start'})}\n\n"
-            stage2_results, label_to_model = await stage2_collect_rankings(
+            async for chunk in pipeline_runner.run_council_stream(
                 request.content,
-                stage1_results,
-                model_efforts=model_efforts
-            )
-            aggregate_rankings = calculate_aggregate_rankings(stage2_results, label_to_model)
-            yield f"data: {json.dumps({'type': 'stage2_complete', 'data': stage2_results, 'metadata': {'label_to_model': label_to_model, 'aggregate_rankings': aggregate_rankings}})}\n\n"
+                model_efforts=request.model_efforts
+            ):
+                ev_type = None
+                if chunk.startswith("data: "):
+                    payload = json.loads(chunk[6:].strip())
+                    ev_type = payload.get("type")
+                    if ev_type == "stage1_complete":
+                        stage1_results = payload.get("data")
+                    elif ev_type == "stage2_complete":
+                        stage2_results = payload.get("data")
+                    elif ev_type == "stage3_complete":
+                        stage3_result = payload.get("data")
+                    elif ev_type == "complete":
+                        final_metadata = payload.get("metadata")
 
-            # Stage 3: Synthesize final answer
-            yield f"data: {json.dumps({'type': 'stage3_start'})}\n\n"
-            stage3_result = await stage3_synthesize_final(
-                request.content,
-                stage1_results,
-                stage2_results,
-                chairman_effort=chairman_effort
-            )
-            yield f"data: {json.dumps({'type': 'stage3_complete', 'data': stage3_result})}\n\n"
+                # If stage3_complete arrived and we have title_task, await title and emit title_complete before complete
+                if ev_type == "stage3_complete" and title_task:
+                    yield chunk
+                    title = await title_task
+                    storage.update_conversation_title(conversation_id, title)
+                    yield f"data: {json.dumps({'type': 'title_complete', 'data': {'title': title}})}\n\n"
+                    title_task = None
+                    continue
 
-            # Wait for title generation if it was started
-            if title_task:
-                title = await title_task
-                storage.update_conversation_title(conversation_id, title)
-                yield f"data: {json.dumps({'type': 'title_complete', 'data': {'title': title}})}\n\n"
+                if ev_type == "complete" and title_task:
+                    title = await title_task
+                    storage.update_conversation_title(conversation_id, title)
+                    yield f"data: {json.dumps({'type': 'title_complete', 'data': {'title': title}})}\n\n"
+                    title_task = None
 
-            # Save complete assistant message
-            metadata = {
-                "label_to_model": label_to_model,
-                "aggregate_rankings": aggregate_rankings,
-                "model_efforts": model_efforts
-            }
-            storage.add_assistant_message(
-                conversation_id,
-                stage1_results,
-                stage2_results,
-                stage3_result,
-                metadata
-            )
+                yield chunk
 
-            # Send completion event
-            yield f"data: {json.dumps({'type': 'complete', 'metadata': metadata})}\n\n"
+            # Save complete assistant message if all stages were received
+            if stage1_results is not None and stage2_results is not None and stage3_result is not None:
+                metadata = final_metadata or {}
+                storage.add_assistant_message(
+                    conversation_id,
+                    stage1_results,
+                    stage2_results,
+                    stage3_result,
+                    metadata
+                )
 
         except Exception as e:
             # Send error event

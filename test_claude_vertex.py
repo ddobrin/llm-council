@@ -1,11 +1,13 @@
 """Test Anthropic Claude models on Vertex AI using Application Default Credentials (ADC)."""
 
 import asyncio
+import pytest
 from backend.config import GCP_PROJECT_ID, VERTEX_AI_ANTHROPIC_REGION, is_claude_model
 from backend.vertex import query_model, query_models_parallel
 from backend.claude import get_anthropic_vertex_client
 
 
+@pytest.mark.live
 async def test_claude():
     print(f"=== Vertex AI Claude Test Configuration ===")
     print(f"GCP Project ID: {GCP_PROJECT_ID}")

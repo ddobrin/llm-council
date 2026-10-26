@@ -1,7 +1,8 @@
 """Test full 3-stage deliberation with Vertex AI."""
 
 import asyncio
-from backend.council import run_full_council, generate_conversation_title
+from backend.pipeline_runner import run_council
+from backend.council import generate_conversation_title
 
 
 async def main():
@@ -13,7 +14,7 @@ async def main():
     print(f"Generated title: {title}\n")
 
     print("Running 3-stage council deliberation...")
-    stage1, stage2, stage3, metadata = await run_full_council(query)
+    stage1, stage2, stage3, metadata = await run_council(query)
 
     print("\n--- STAGE 1: Individual Responses ---")
     print(f"Number of responses: {len(stage1)}")

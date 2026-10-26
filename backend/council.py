@@ -53,37 +53,18 @@ async def stage1_collect_responses(
     return stage1_results
 
 
-async def stage2_collect_rankings(
+def build_stage2_prompt(
     user_query: str,
-    stage1_results: List[Dict[str, Any]],
-    model_efforts: Optional[Dict[str, Optional[str]]] = None
-) -> Tuple[List[Dict[str, Any]], Dict[str, str]]:
-    """
-    Stage 2: Each model ranks the anonymized responses.
-
-    Args:
-        user_query: The original user query
-        stage1_results: Results from Stage 1
-
-    Returns:
-        Tuple of (rankings list, label_to_model mapping)
-    """
-    # Create anonymized labels for responses (Response A, Response B, etc.)
-    labels = [chr(65 + i) for i in range(len(stage1_results))]  # A, B, C, ...
-
-    # Create mapping from label to model name
-    label_to_model = {
-        f"Response {label}": result['model']
-        for label, result in zip(labels, stage1_results)
-    }
-
-    # Build the ranking prompt
+    labels: List[str],
+    stage1_results: List[Dict[str, Any]]
+) -> str:
+    """Build the stage 2 peer review and ranking prompt."""
     responses_text = "\n\n".join([
         f"Response {label}:\n{result['response']}"
         for label, result in zip(labels, stage1_results)
     ])
 
-    ranking_prompt = f"""You are evaluating different responses to the following question:
+    return f"""You are evaluating different responses to the following question:
 
 Question: {user_query}
 
@@ -113,6 +94,70 @@ FINAL RANKING:
 3. Response B
 
 Now provide your evaluation and ranking:"""
+
+
+def build_stage3_prompt(
+    user_query: str,
+    stage1_results: List[Dict[str, Any]],
+    stage2_results: List[Dict[str, Any]]
+) -> str:
+    """Build the stage 3 chairman synthesis prompt."""
+    stage1_text = "\n\n".join([
+        f"Model: {result['model']}\nResponse: {result['response']}"
+        for result in stage1_results
+    ])
+
+    stage2_text = "\n\n".join([
+        f"Model: {result['model']}\nRanking: {result['ranking']}"
+        for result in stage2_results
+    ])
+
+    return f"""You are the Chairman of an LLM Council. Multiple AI models have provided responses to a user's question, and then ranked each other's responses.
+
+Original Question: {user_query}
+
+STAGE 1 - Individual Responses:
+{stage1_text}
+
+STAGE 2 - Peer Rankings:
+{stage2_text}
+
+Your task as Chairman is to synthesize all of this information into a single, comprehensive, accurate answer to the user's original question. Consider:
+- The individual responses and their insights
+- The peer rankings and what they reveal about response quality
+- Any patterns of agreement or disagreement
+
+Provide a clear, well-reasoned final answer that represents the council's collective wisdom:"""
+
+
+async def stage2_collect_rankings(
+    user_query: str,
+    stage1_results: List[Dict[str, Any]],
+    model_efforts: Optional[Dict[str, Optional[str]]] = None
+) -> Tuple[List[Dict[str, Any]], Dict[str, str]]:
+    """
+    Stage 2: Collect rankings from all models.
+    Each model evaluates all responses (anonymized) and provides a ranking.
+
+    Args:
+        user_query: The original user query
+        stage1_results: Results from Stage 1
+        model_efforts: Optional per-model reasoning effort configuration
+
+    Returns:
+        Tuple of (rankings_list, label_to_model_dict)
+    """
+    # Create anonymized labels for responses (Response A, Response B, etc.)
+    labels = [chr(65 + i) for i in range(len(stage1_results))]  # A, B, C, ...
+
+    # Create mapping from label to model name
+    label_to_model = {
+        f"Response {label}": result['model']
+        for label, result in zip(labels, stage1_results)
+    }
+
+    # Build the ranking prompt
+    ranking_prompt = build_stage2_prompt(user_query, labels, stage1_results)
 
     messages = [{"role": "user", "content": ranking_prompt}]
     effective_efforts = resolve_model_efforts(model_efforts)
@@ -154,34 +199,7 @@ async def stage3_synthesize_final(
     Returns:
         Dict with 'model', 'response', and optional 'effort' keys
     """
-    # Build comprehensive context for chairman
-    stage1_text = "\n\n".join([
-        f"Model: {result['model']}\nResponse: {result['response']}"
-        for result in stage1_results
-    ])
-
-    stage2_text = "\n\n".join([
-        f"Model: {result['model']}\nRanking: {result['ranking']}"
-        for result in stage2_results
-    ])
-
-    chairman_prompt = f"""You are the Chairman of an LLM Council. Multiple AI models have provided responses to a user's question, and then ranked each other's responses.
-
-Original Question: {user_query}
-
-STAGE 1 - Individual Responses:
-{stage1_text}
-
-STAGE 2 - Peer Rankings:
-{stage2_text}
-
-Your task as Chairman is to synthesize all of this information into a single, comprehensive, accurate answer to the user's original question. Consider:
-- The individual responses and their insights
-- The peer rankings and what they reveal about response quality
-- Any patterns of agreement or disagreement
-
-Provide a clear, well-reasoned final answer that represents the council's collective wisdom:"""
-
+    chairman_prompt = build_stage3_prompt(user_query, stage1_results, stage2_results)
     messages = [{"role": "user", "content": chairman_prompt}]
 
     # Resolve effort for chairman (defaults to None / model set effort if unset)

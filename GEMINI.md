@@ -18,8 +18,20 @@ LLM Council is a 3-stage deliberation system where multiple LLMs collaboratively
 - Configures `VERTEX_AI_ANTHROPIC_REGION`: (defaults to `GCP_REGION` / `global`, configurable via `VERTEX_AI_ANTHROPIC_REGION` env var)
 - Configures `AVAILABLE_EFFORT_LEVELS`: `["default", "minimal", "low", "medium", "high"]`
 - Configures `DEFAULT_MODEL_EFFORTS`: parsed from optional `MODEL_EFFORTS` env var (e.g. `MODEL_EFFORTS="gemini-3.7-flash:default,claude-sonnet-5:low,claude-opus-5:medium,gemini-3.1-pro-preview:high"`)
+- Configures `COUNCIL_PIPELINE`: env `COUNCIL_PIPELINE`, defaults to `"adk"` (`"adk"` or `"legacy"`)
+- Helper `get_council_pipeline()`: returns active pipeline mode
 - Helper `is_claude_model(model)`: identifies Claude models for routing
 - Backend runs on **port 8001** (NOT 8000 - user had another app on 8000)
+
+**`pipeline_runner.py`**
+- Unified runner dispatching `run_council` and `run_council_stream` to either `backend.council` (legacy) or `backend.agents.pipeline` (ADK Workflow) based on `get_council_pipeline()`
+
+**`backend/agents/`**
+- `pipeline.py`: `build_council_workflow()` assembling the ADK 2.12+ Workflow DAG graph with `stage1_router_fn` (early stopping if all fail), per-model effort configs (`AnthropicGenerateContentConfig` for Claude with adaptive thinking, `GenerateContentConfig` with `ThinkingLevel` for Gemini), `create_model_for_council` (instantiating ADK-native `Claude` via `CouncilClaude` with per-running-loop `AsyncAnthropicVertex` client cached via `WeakKeyDictionary`, `max_retries=0`, and `timeout=120.0`), and `effort_fallback_callback` (strips effort/thinking config and retries once on effort errors, drops immediately on timeout).
+- `stage1.py`: Stage 1 individual response parallel nodes (`build_stage1_nodes`).
+- `stage2.py`: Stage 2 anonymization, dynamic prompt instruction, and peer review nodes (`build_stage2_nodes`).
+- `stage3.py`: Stage 3 chairman synthesis prep, dynamic prompt instruction, and store nodes (`build_stage3_nodes`).
+- `agents/council/agent.py`: Top-level CLI export exposing `root_agent` for `adk run` / `adk web` compatibility.
 
 **`claude.py`**
 - `get_anthropic_vertex_client()`: Cached singleton `AsyncAnthropicVertex(project_id=..., region=...)` using Google Cloud Application Default Credentials (ADC) — **no API keys required**

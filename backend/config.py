@@ -58,9 +58,34 @@ if model_efforts_env:
             mod, eff = entry.split(":", 1)
             DEFAULT_MODEL_EFFORTS[mod.strip()] = eff.strip().lower()
 
+# Supported pipeline implementations: 'adk' (default) or 'legacy'
+SUPPORTED_PIPELINES = ("adk", "legacy")
+
+
+def parse_council_pipeline(val: str | None) -> str:
+    """Parse and validate COUNCIL_PIPELINE configuration."""
+    if not val:
+        return "adk"
+    norm = val.strip().lower()
+    if norm not in SUPPORTED_PIPELINES:
+        raise ValueError(
+            f"Invalid COUNCIL_PIPELINE: '{val}'. Expected one of {SUPPORTED_PIPELINES}"
+        )
+    return norm
+
+
+_COUNCIL_PIPELINE = parse_council_pipeline(os.getenv("COUNCIL_PIPELINE"))
+
+
+def get_council_pipeline() -> str:
+    """Get the currently configured council pipeline ('adk' or 'legacy')."""
+    return parse_council_pipeline(os.getenv("COUNCIL_PIPELINE", _COUNCIL_PIPELINE))
+
+
 # Legacy OpenRouter settings (retained for backward compatibility)
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Data directory for conversation storage
 DATA_DIR = "data/conversations"
+

@@ -3,14 +3,27 @@ name = "llm-council"
 version = "0.1.0"
 description = "Your LLM Council"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
     "python-dotenv>=1.0.0",
     "httpx>=0.27.0",
     "pydantic>=2.9.0",
-    "google-genai>=2.22.0",
+    "google-genai>=2.30",
     "google-auth>=2.57.1",
     "anthropic[vertex]>=0.40.0",
+    "google-adk[extensions]>=2.12.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+    "live: marks tests that require Google Cloud ADC and Vertex AI network access",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
 ]

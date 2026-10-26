@@ -92,6 +92,7 @@ GCP_REGION=global
 # Or set GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
 
 # Optional overrides:
+# COUNCIL_PIPELINE=adk  # or legacy (defaults to adk)
 # COUNCIL_MODELS=gemini-3.7-flash,claude-sonnet-5,claude-opus-5
 # CHAIRMAN_MODEL=gemini-3.1-pro-preview
 # VERTEX_AI_ANTHROPIC_REGION=global
@@ -102,6 +103,7 @@ GCP_REGION=global
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
+| `COUNCIL_PIPELINE` | Deliberation pipeline execution engine (`adk` or `legacy`) | `adk` |
 | `GCP_PROJECT_ID` | Your Google Cloud project ID hosting Vertex AI | `genai-playground24` |
 | `GCP_REGION` | Primary Vertex AI location for Gemini models | `global` |
 | `COUNCIL_MODELS` | Comma-separated list of models for the council | `gemini-3.7-flash,claude-sonnet-5,claude-opus-5` |

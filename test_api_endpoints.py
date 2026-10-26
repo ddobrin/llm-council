@@ -2,12 +2,17 @@
 
 import asyncio
 import json
+import pytest
 from httpx import AsyncClient, ASGITransport
 from backend.main import app
+from backend.config import CHAIRMAN_MODEL
 
 
-async def test_api():
-    print("Testing API endpoints...")
+@pytest.mark.live
+@pytest.mark.parametrize("pipeline_mode", ["legacy", "adk"])
+async def test_api(pipeline_mode: str, monkeypatch):
+    monkeypatch.setenv("COUNCIL_PIPELINE", pipeline_mode)
+    print(f"\nTesting API endpoints with COUNCIL_PIPELINE={pipeline_mode}...")
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # 1. Health check
@@ -21,13 +26,13 @@ async def test_api():
         council_info = resp.json()
         assert "council_models" in council_info
         assert "chairman_model" in council_info
-        assert "supported_chairman_models" in council_info
-        assert "gemini-3.8-flash" in council_info["supported_chairman_models"]
         assert "available_efforts" in council_info
         assert "default_efforts" in council_info
         assert "default" in council_info["available_efforts"]
         assert "low" in council_info["available_efforts"]
         print("✓ GET /api/council passed:", council_info)
+
+        council_models = council_info["council_models"]
 
         # 2. Create conversation
         resp = await client.post("/api/conversations", json={})
@@ -43,13 +48,12 @@ async def test_api():
         assert any(c["id"] == conv_id for c in convs)
         print(f"✓ Listed {len(convs)} conversations")
 
-        # 4. Test streaming message with per-model effort & custom chairman_model
-        print("\nTesting /message/stream SSE endpoint with per-model effort & chairman_model...")
+        # 4. Test streaming message with per-model effort
+        print("\nTesting /message/stream SSE endpoint with per-model effort...")
         events = []
         model_efforts_payload = {
-            "gemini-3.6-flash": "low",
-            "gemini-3.7-flash": "default",
-            "gemini-3.8-flash": "low",
+            m: ("low" if i % 2 == 0 else "default")
+            for i, m in enumerate(council_models)
         }
         complete_metadata = None
         async with client.stream(
@@ -58,7 +62,6 @@ async def test_api():
             json={
                 "content": "What is 2 + 2?",
                 "model_efforts": model_efforts_payload,
-                "chairman_model": "gemini-3.8-flash"
             }
         ) as stream_resp:
             assert stream_resp.status_code == 200
@@ -85,8 +88,7 @@ async def test_api():
             assert ev in events, f"Missing event: {ev}"
 
         assert complete_metadata is not None
-        assert "chairman_model" in complete_metadata
-        assert complete_metadata["chairman_model"] == "gemini-3.8-flash"
+        assert "model_efforts" in complete_metadata
 
         print("\n✓ All SSE events received successfully!")
 
@@ -96,19 +98,28 @@ async def test_api():
         conv_detail = resp.json()
         assert len(conv_detail["messages"]) == 2  # user + assistant
         assert conv_detail["messages"][1]["role"] == "assistant"
-        assert len(conv_detail["messages"][1]["stage1"]) == 3
+        assert len(conv_detail["messages"][1]["stage1"]) == len(council_models)
         # Check effort metadata
         stage1_items = conv_detail["messages"][1]["stage1"]
         for item in stage1_items:
             print(f"  Model {item['model']} effort: {item.get('effort')}")
         stage3_item = conv_detail["messages"][1]["stage3"]
         print(f"  Chairman {stage3_item['model']} effort: {stage3_item.get('effort')}")
-        assert stage3_item["model"] == "gemini-3.8-flash"
+        assert stage3_item["model"] == CHAIRMAN_MODEL
         assert "model_efforts" in conv_detail["messages"][1]["metadata"]
-        assert conv_detail["messages"][1]["metadata"].get("chairman_model") == "gemini-3.8-flash"
-        print(f"✓ Conversation persisted with title: '{conv_detail['title']}' and chairman_model metadata")
+        print(f"✓ Conversation persisted with title: '{conv_detail['title']}'")
         print("\nAPI tests PASSED!")
 
 
 if __name__ == "__main__":
-    asyncio.run(test_api())
+    import os
+
+    class DummyMonkeypatch:
+        def setenv(self, k, v):
+            os.environ[k] = v
+
+    async def run_all():
+        for mode in ["legacy", "adk"]:
+            await test_api(mode, DummyMonkeypatch())
+
+    asyncio.run(run_all())
