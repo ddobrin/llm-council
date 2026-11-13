@@ -10,7 +10,7 @@ load_dotenv()
 GCP_PROJECT_ID = (
     os.getenv("GCP_PROJECT_ID")
     or os.getenv("GOOGLE_CLOUD_PROJECT")
-    or "genai-playground24"
+    or "genai26-503213"
 )
 
 GCP_REGION = (
@@ -26,9 +26,9 @@ if COUNCIL_MODELS_ENV:
     COUNCIL_MODELS = [m.strip() for m in COUNCIL_MODELS_ENV.split(",") if m.strip()]
 else:
     COUNCIL_MODELS = [
-        "gemini-3.8-flash",
+        "gemini-4-carbon",
         "claude-opus-5-5",
-        "claude-opus-5",
+        "gemini-4-hydrogen",
     ]
 
 # Chairman model - synthesizes final response (changeable via CHAIRMAN_MODEL in .env)
